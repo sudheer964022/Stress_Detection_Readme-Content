@@ -107,92 +107,135 @@ Built using **PyQt6**, these files define the visual application.
 
 The following diagram illustrates the complete flow from Login to Stress Detection.
 
+## 📊 System Workflow
+
+The following diagram illustrates the complete flow from Login to Stress Detection.
+
+## 📊 System Workflow
+
+The following diagram illustrates the complete flow from Login to Stress Detection.
+
 ```mermaid
 graph TD
-    %% Define Styles
-    classDef startend fill:#f9f9f9,stroke:#333,stroke-width:2px;
-    classDef process fill:#e1f5fe,stroke:#0277bd,stroke-width:2px;
-    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px;
-    classDef io fill:#e0f2f1,stroke:#00695c,stroke-width:2px;
-    classDef database fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px;
+    classDef startend fill:#212121,stroke:#000,stroke-width:2px,color:#fff;
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef io fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000;
+    classDef alert fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+    classDef database fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
 
-    %% Login Process
-    Start([Start Application]):::startend --> LoginUI[Display Login Window]:::io
-    LoginUI --> UserAction{User Action}:::decision
+    Start([Start Application]):::startend --> Splash[Show Splash Screen]:::io
+    Splash --> CheckDB{Checking MongoDB}:::decision
     
-    %% Registration Flow
-    UserAction -- Click Register --> RegForm[Show Registration Form]:::io
-    RegForm --> InputReg[Input: Name, Email, Phone, Password]:::io
+    CheckDB -- Error --> DBError[Show Connection Error]:::alert
+    DBError --> RetryDB{Retry?}:::decision
+    RetryDB -- Yes --> CheckDB
+    RetryDB -- No --> Exit([Exit App]):::startend
+
+    CheckDB -- Connected --> LoginUI[Display Login Window]:::io
+    LoginUI --> UserAction{User Interaction}:::decision
+
+    %% Registration
+    UserAction -- Register --> RegForm[Show Registration Dialog]:::io
+    RegForm --> InputReg[Input Details]:::io
     InputReg --> ValidateReg{Validate Inputs}:::decision
-    ValidateReg -- Invalid --> ShowRegError[Show Data Error]:::process
+    
+    ValidateReg -- Invalid --> ShowRegError[Show Validation Error]:::alert
     ShowRegError --> InputReg
-    ValidateReg -- Valid --> CheckUser{Check User Exists?}:::database
-    CheckUser -- Yes --> ShowExistsError[Show 'Email/Phone Exists']:::process
+    
+    ValidateReg -- Valid --> CheckDupe{User Exists?}:::database
+    CheckDupe -- Yes --> ShowExistsError[Email or Phone Used]:::alert
     ShowExistsError --> InputReg
-    CheckUser -- No --> CreateAccount[Create Inactive Account in DB]:::database
-    CreateAccount --> RegSuccess[Show 'Registration Successful' Dialog]:::io
+    
+    CheckDupe -- No --> CreateAccount[Create Inactive Account]:::database
+    CreateAccount --> RegSuccess[Show Success Message]:::io
     RegSuccess --> LoginUI
 
-    %% Login Flow
-    UserAction -- Enter Credentials --> InputCreds[Input Email & Password]:::io
-    InputCreds --> ConnectDB{DB Connected?}:::decision
-    ConnectDB -- No --> ShowConnError[Show Connection Error]:::process
-    ShowConnError --> InputCreds
-    ConnectDB -- Yes --> Auth{Authenticate User}:::database
+    %% Login
+    UserAction -- Login --> AuthProc[Authenticating]:::process
+    AuthProc --> FetchUser{Query User DB}:::database
     
-    Auth -- User Not Found --> ShowUserError[Show 'Email Not Registered']:::process
-    ShowUserError --> InputCreds
+    FetchUser -- Not Found --> LoginFail[Show User Not Found]:::alert
+    LoginFail --> LoginUI
     
-    Auth -- User Inactive --> ShowActiveError[Show 'Account Inactive']:::process
-    ShowActiveError --> InputCreds
+    FetchUser -- Found --> VerifyPass{Check User Status}:::decision
     
-    Auth -- Invalid Password --> ShowPassError[Show 'Invalid Password']:::process
-    ShowPassError --> InputCreds
-    
-    Auth -- Success --> CheckRole{Check User Role}:::decision
+    VerifyPass -- Inactive --> AccountLocked[Show Account Pending]:::alert
+    AccountLocked --> LoginUI
 
-    %% Employee Flow
-    CheckRole -- Employee --> EmpDash[Open Employee Dashboard]:::io
-    EmpDash --> StartCam[Initialize Webcam]:::process
-    StartCam --> DetectFace[Detect Face & Landmarks]:::process
-    DetectFace --> ExtractFeat[Extract: Blink, Mouth, Eye, Eyebrow]:::process
-    ExtractFeat --> RecogEmotion[DeepFace Emotion Recognition]:::process
-    RecogEmotion --> CalcStress[Calculate Stress Score]:::process
-    CalcStress --> SaveRec[Save Record to MongoDB]:::database
-    SaveRec --> UpdateUI[Update Real-Time Graphs & Stats]:::io
-    UpdateUI --> CheckStress{Stress Level?}:::decision
-    CheckStress -- High/Medium --> TrigAlert[Trigger Alert & Recommendations]:::process
-    TrigAlert --> ShowNotif[Show Windows Notification]:::io
-    CheckStress -- Low --> Continue[Continue Monitoring]:::process
+    VerifyPass -- Active --> CheckPass{Verify Password}:::process
+    CheckPass -- Invalid --> PassFail[Show Invalid Password]:::alert
+    PassFail --> LoginUI
 
-    %% Manager Flow
-    CheckRole -- Manager --> MgrDash[Open Manager Dashboard]:::io
-    MgrDash --> FetchEmp[Fetch Assigned Employees from DB]:::database
-    FetchEmp --> DispList[Display Employee List]:::io
-    DispList --> MonitorSelect{Select Employee}:::decision
-    MonitorSelect --> ViewLive[View Live Status & Stress]:::io
-    ViewLive --> ViewHist[View Historical Trends]:::io
-    MonitorSelect --> ReceiveAlert[Receive Team Stress Alerts]:::io
+    CheckPass -- Valid --> GenToken[Generate Session Token]:::process
+    GenToken --> DetermineRole{User Role?}:::decision
+
+    %% Employee
+    DetermineRole -- Employee --> EmpDash[Open Employee Dashboard]:::io
     
-    %% Admin Flow
-    CheckRole -- Admin --> AdminPanel[Open Admin Panel]:::io
-    AdminPanel --> FetchUsers[Fetch All Users from DB]:::database
-    FetchUsers --> ManageUsers[Manage Users Interface]:::io
+    subgraph Monitoring ["Real-Time Monitoring Loop"]
+        EmpDash --> InitCam[Initialize Webcam]:::process
+        InitCam --> ReadFrame[Read Video Frame]:::process
+        ReadFrame --> FaceDet[MediaPipe Face Detection]:::process
+        
+        FaceDet -- No Face --> ShowNoFace[Warning: No Face]:::alert
+        ShowNoFace --> ReadFrame
+        
+        FaceDet -- Found --> ExtractLMs[Extract Landmarks]:::process
+        ExtractLMs --> CalcPhysio[Calculate Physiological Metrics]:::process
+        
+        CalcPhysio --> DeepFace[DeepFace Emotion Recognition]:::process
+        DeepFace --> CalcStress[Calculate Stress Score]:::process
+        
+        CalcStress --> SaveRecord[Save to DB]:::database
+        SaveRecord --> UpdateUI[Update Graph and Stats]:::io
+        
+        UpdateUI --> StressCheck{Check Stress Level}:::decision
+        StressCheck -- High or Medium --> TrigAlert[Trigger Alert]:::alert
+        TrigAlert --> ShowRec[Show Recommendation]:::io
+        ShowRec --> ReadFrame
+        
+        StressCheck -- Low --> ReadFrame
+    end
+
+    %% Manager
+    DetermineRole -- Manager --> MgrDash[Open Manager Dashboard]:::io
     
-    ManageUsers --> AdminAction{Action?}:::decision
-    AdminAction -- Create User --> AddUserForm[Add User Form]:::io
-    AddUserForm --> SaveUser[Save New User to DB]:::database
+    MgrDash --> FetchTeam[Fetch Assigned Employees]:::database
+    FetchTeam --> RenderTeam[Show Team Grid]:::io
     
-    AdminAction -- Edit User --> EditUserForm[Edit User Form]:::io
-    EditUserForm --> UpdateUser[Update User in DB]:::database
+    subgraph ManagerMonitor ["Manager Monitoring"]
+        RenderTeam --> AutoRefresh[Poll DB every 5s]:::process
+        AutoRefresh --> CheckStatus{Analyze Status}:::decision
+        
+        CheckStatus -- High Stress --> HighlightRed[Red Highlight]:::alert
+        CheckStatus -- Medium --> HighlightYellow[Yellow Highlight]:::alert
+        CheckStatus -- Low --> HighlightGreen[Green Highlight]:::process
+        
+        HighlightRed --> NotifyMgr[Desktop Notification]:::alert
+    end
+
+    %% Admin
+    DetermineRole -- Admin --> AdminPanel[Open Admin Panel]:::io
     
-    AdminAction -- Delete User --> ConfirmDel[Confirm Delete]:::io
-    ConfirmDel --> DelUser[Remove User from DB]:::database
+    AdminPanel --> FetchUsers[Fetch All Users]:::database
+    FetchUsers --> UserTable[Show User Table]:::io
     
-    AdminAction -- Activate User --> SetActive[Set Status = Active]:::database
-    
-    AdminPanel --> Analytics[View System-Wide Analytics]:::io
+    subgraph UserMgmt ["User Management"]
+        UserTable --> AdminAction{Select Action}:::decision
+        
+        AdminAction -- Add --> AddUserForm[Add User]:::io
+        AddUserForm --> SaveNewUser[Insert into DB]:::database
+        
+        AdminAction -- Edit --> EditDialog[Edit User]:::io
+        EditDialog --> UpdateUser[Update DB]:::database
+        
+        AdminAction -- Delete --> ConfirmDel[Confirm Delete]:::alert
+        ConfirmDel --> RemoveUser[Delete from DB]:::database
+    end
 ```
+@endmermaid
+
 
 ---
 
