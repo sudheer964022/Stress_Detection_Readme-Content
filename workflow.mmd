@@ -1,0 +1,144 @@
+@startmermaid
+graph TD
+    %% ==========================================
+    %% 🎨 STYLING DEFINITIONS
+    %% ==========================================
+    classDef startend fill:#212121,stroke:#000,stroke-width:2px,color:#fff;
+    classDef process fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000;
+    classDef decision fill:#fff9c4,stroke:#fbc02d,stroke-width:2px,color:#000;
+    classDef io fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000;
+    classDef database fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000;
+    classDef alert fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
+
+    %% ==========================================
+    %% 🚀 AUTHENTICATION FLOW
+    %% ==========================================
+    Start([🚀 Start Application]):::startend --> Spash[Show Splash Screen]:::io
+    Spash --> CheckDB{Checking MongoDB...}:::decision
+    
+    CheckDB -- Error --> DBError[Show Connection Error Dialog]:::alert
+    DBError --> RetryDB{Retry?}:::decision
+    RetryDB -- Yes --> CheckDB
+    RetryDB -- No --> Exit([Exit App]):::startend
+
+    CheckDB -- Connected --> LoginUI[🖥️ Display Login Window]:::io
+    
+    LoginUI --> UserAction{User Interaction}:::decision
+
+    %% --- REGISTRATION SUB-FLOW ---
+    UserAction -- Click 'Register' --> RegForm[📝 Show Registration Dialog]:::io
+    RegForm --> InputReg[Input: Name, Email, Phone, Pass]:::io
+    InputReg --> ValidateReg{Validate Inputs}:::decision
+    
+    ValidateReg -- Invalid --> ShowRegError[⚠️ Show Validation Error]:::alert
+    ShowRegError --> InputReg
+    
+    ValidateReg -- Valid --> CheckDupe{Check User Exists?}:::database
+    CheckDupe -- Yes --> ShowExistsError[⚠️ Email/Phone Already Used]:::alert
+    ShowExistsError --> InputReg
+    
+    CheckDupe -- No --> CreateAccount[💾 Create 'Inactive' Account in DB]:::database
+    CreateAccount --> RegSuccess[✅ Show Success Message]:::io
+    RegSuccess --> LoginUI
+
+    %% --- LOGIN SUB-FLOW ---
+    UserAction -- Enter Credentials --> AuthProc[Authenticating...]:::process
+    AuthProc --> FetchUser{Query User DB}:::database
+    
+    FetchUser -- Not Found --> LoginFail[❌ Show 'User Not Found']:::alert
+    LoginFail --> LoginUI
+    
+    FetchUser -- Found --> VerifyPass{Check User Status}:::decision
+    
+    VerifyPass -- Inactive --> AccountLocked[🔒 Show 'Account Pending Approval']:::alert
+    AccountLocked --> LoginUI
+
+    VerifyPass -- Active --> CheckPass{Verify Password (Bcrypt)}:::process
+    CheckPass -- Invalid --> PassFail[❌ Show 'Invalid Password']:::alert
+    PassFail --> LoginUI
+
+    CheckPass -- Valid --> GenToken[🔑 Generate Session Token]:::process
+    GenToken --> DetermineRole{Determine User Role}:::decision
+
+    %% ==========================================
+    %% 👨‍💻 EMPLOYEE WORKFLOW
+    %% ==========================================
+    DetermineRole -- Employee --> EmpDash[👤 Open Employee Dashboard]:::io
+    
+    subgraph "Real-Time Monitoring Loop"
+        EmpDash --> InitCam[📷 Initialize Webcam]:::process
+        InitCam --> ReadFrame[Read Video Frame]:::process
+        ReadFrame --> FaceDet[🤖 MediaPipe: Face Detection]:::process
+        
+        FaceDet -- No Face --> ShowNoFace[⚠️ 'No Face Detected' Warning]:::alert
+        ShowNoFace --> ReadFrame
+        
+        FaceDet -- Face Found --> ExtractLMs[📐 Extract 468 Landmarks]:::process
+        ExtractLMs --> CalcPhysio[🧮 Calculate: Blink, Mouth, Eye Closure]:::process
+        
+        CalcPhysio --> DeepFace[🧠 DeepFace CNN: Emotion Recognition]:::process
+        DeepFace --> CalcStress[📊 Calculate Stress Score (0.0 - 1.0)]:::process
+        
+        CalcStress --> SaveRecord[💾 Save Stress Record to DB]:::database
+        SaveRecord --> UpdateUI[📈 Update Live Graph & Stats]:::io
+        
+        UpdateUI --> StressCheck{Stress Level > Threshold?}:::decision
+        StressCheck -- High/Medium --> TrigAlert[🚨 Trigger Pop-up Alert]:::alert
+        TrigAlert --> ShowRec[💡 Show Health Recommendation]:::io
+        ShowRec --> ReadFrame
+        
+        StressCheck -- Low --> ReadFrame
+    end
+    
+    EmpDash -- Click 'History' --> ViewHistory[📅 View Weekly/Monthly Stress]:::io
+    EmpDash -- Click 'Profile' --> EditProfile[✏️ Edit Account Details]:::io
+
+    %% ==========================================
+    %% 👔 MANAGER WORKFLOW
+    %% ==========================================
+    DetermineRole -- Manager --> MgrDash[👔 Open Manager Dashboard]:::io
+    
+    MgrDash --> FetchTeam[👥 Fetch Assigned Employees]:::database
+    FetchTeam --> RenderTeam[Show Team Grid Output]:::io
+    
+    subgraph "Manager Monitoring"
+        RenderTeam --> AutoRefresh[🔄 Poll DB every 5s]:::process
+        AutoRefresh --> CheckStatus{Analyze Latest Records}:::decision
+        
+        CheckStatus -- High Stress --> HighlightRed[🔴 Highlight Employee Red]:::alert
+        CheckStatus -- Medium Stress --> HighlightYellow[🟡 Highlight Employee Yellow]:::alert
+        CheckStatus -- Low Stress --> HighlightGreen[🟢 Highlight Employee Green]:::process
+        
+        HighlightRed --> NotifyMgr[🔔 Send Desktop Notification]:::alert
+    end
+    
+    MgrDash -- Select Employee --> DrillDown[🔍 View Employee Detail History]:::io
+
+    %% ==========================================
+    %% 🛡️ ADMIN WORKFLOW
+    %% ==========================================
+    DetermineRole -- Admin --> AdminPanel[🛡️ Open Admin Panel]:::io
+    
+    AdminPanel --> FetchAllUsers[📂 Fetch All Users]:::database
+    FetchAllUsers --> UserTable[Show User Management Table]:::io
+    
+    subgraph "User Management"
+        UserTable --> AdminAction{Select Action}:::decision
+        
+        AdminAction -- Add User --> AddUserForm[➕ Add New User]:::io
+        AddUserForm --> SaveNewUser[💾 Insert into DB]:::database
+        
+        AdminAction -- Edit User --> EditDialog[✏️ Edit User Details]:::io
+        EditDialog --> UpdateUser[💾 Update DB Record]:::database
+        
+        AdminAction -- Delete --> ConfirmDel[🗑️ Confirm Deletion]:::alert
+        ConfirmDel --> RemoveUser[❌ Delete from DB]:::database
+        
+        AdminAction -- Approve --> ActivateAcc[✅ Set Active = True]:::database
+        
+        AdminAction -- Assign Mgr --> MapRel[🔗 Link Employee to Manager]:::database
+    end
+    
+    AdminPanel --> ViewAnalytics[📊 View System-Wide Analytics]:::io
+
+@endmermaid
