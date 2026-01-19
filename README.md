@@ -460,7 +460,7 @@ graph TD
     
     ValidateReg -- Valid --> CheckDupe{Unique?}:::database
     CheckDupe -- No --> ShowExistsError[Email/Phone exists]:::alert
-    CheckDupe -- Yes --> PwdHash[Hash Password (Bcrypt)]:::process
+    CheckDupe -- Yes --> PwdHash["Hash Password (Bcrypt)"]:::process
     PwdHash --> CreateAccount[Insert 'Inactive' User]:::database
     CreateAccount --> RegSuccess[Success Message]:::io
     RegSuccess --> LoginUI
@@ -502,7 +502,7 @@ graph TD
     %% Activation
     AdminAction -- Activate User --> EditUser[Edit Dialog]:::io
     EditUser --> ToggleActive[Set is_active=True]:::process
-    ToggleActive --> AssignMgr[Assign Manager(s)]:::process
+    ToggleActive --> AssignMgr["Assign Manager(s)"]:::process
     AssignMgr --> SaveUser[Update DB]:::database
     
     %% Config
@@ -530,7 +530,7 @@ graph TD
     MgrDash[Manager Dashboard]:::io --> FetchTeam[Fetch Assigned Employees]:::database
     FetchTeam --> RenderTeam[Render Status Grid]:::io
     
-    RenderTeam --> AutoRefresh[Timer (5s)]:::process
+    RenderTeam --> AutoRefresh["Timer (5s)"]:::process
     AutoRefresh --> PollDB[Get Latest Stress Records]:::database
     PollDB --> CheckStatus{Analyze}:::decision
     
@@ -558,7 +558,7 @@ graph TD
     classDef alert fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000;
 
     EmpDash[Employee Dashboard]:::io --> InitCam[Start Webcam]:::process
-    InitCam --> CaptureLoop[Capture Frame (30 FPS)]:::process
+    InitCam --> CaptureLoop["Capture Frame (30 FPS)"]:::process
     
     CaptureLoop --> FaceDet[MediaPipe Detection]:::process
     FaceDet -- No Face --> ShowSearching[Status: Searching...]:::io
@@ -570,7 +570,7 @@ graph TD
     
     TimerCheck -- Yes --> DeepFace[Run DeepFace Analysis]:::process
     DeepFace --> FuseData[Fuse Emotion + Physiology]:::process
-    FuseData --> CalcScore[Final Stress Score (0-1)]:::process
+    FuseData --> CalcScore["Final Stress Score (0-1)"]:::process
     
     CalcScore --> SaveDB[Save to DB]:::database
     SaveDB --> CheckLevel{Level?}:::decision
@@ -698,3 +698,5 @@ To create a Windows installer (MSI/Setup.exe):
 - [Installation Guide](INSTALLATION_COMPLETE_GUIDE.md)
 - [Docker Guide](DOCKER_GUIDE.md)
 - [Production Verification](PRODUCTION_READY.md)
+
+
