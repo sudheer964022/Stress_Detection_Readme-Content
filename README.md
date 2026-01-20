@@ -48,7 +48,7 @@ A comprehensive **standalone Windows desktop application** for detecting and mon
 ## <a name="tech-stack"></a>🛠️ Tech Stack
 
 - **GUI Framework**: PyQt6
-- **Programming Language**: Python 3.10+
+- **Programming Language**: Python 3.12.7
 - **Database**: MongoDB (NoSQL)
 - **Computer Vision**: OpenCV, MediaPipe
 - **AI/ML**: DeepFace (TensorFlow/Keras), Google GenAI
@@ -593,12 +593,12 @@ graph TD
 - **OS**: Windows 10/11 (64-bit) recommended.
 - **Hardware**: Webcam (USB or builtin), Min 4GB RAM.
 - **Software**: 
-  - Python 3.10+
+  - Python 3.12.7
   - MongoDB Community Server (Running locally or remotely)
 
 ### Method 1: Local Installation (Windows)
 
-1. **Install Python 3.10+**: [Download Here](https://www.python.org/downloads/) (Check "Add Python to PATH").
+1. **Install Python 3.12.7**: [Download Here](https://www.python.org/downloads/release/python-3127/) (Check "Add Python to PATH").
 2. **Install MongoDB**: [Download Here](https://www.mongodb.com/try/download/community). Install as a Service.
 3. **Clone/Download Project**: Navigate to project folder.
 4. **Install Dependencies**:
